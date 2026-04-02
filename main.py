@@ -1,12 +1,6 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow
-
-
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Sennheiser IEM G4 Control")
-        self.resize(900, 600)
+from PyQt6.QtWidgets import QApplication
+from ui.main_window import MainWindow
 
 
 def main():
