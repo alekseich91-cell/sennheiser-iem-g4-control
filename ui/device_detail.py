@@ -169,9 +169,12 @@ class DeviceDetailPanel(QWidget):
             text = self._freq_edit.text().replace(".", "").replace(",", "")
             try:
                 freq = int(text)
-                self.frequency_changed.emit(self._current_ip, freq)
+                if 470000 <= freq <= 865000:
+                    self.frequency_changed.emit(self._current_ip, freq)
+                else:
+                    self._freq_edit.setStyleSheet("background-color: #ffcccc;")
             except ValueError:
-                pass
+                self._freq_edit.setStyleSheet("background-color: #ffcccc;")
 
     def _on_sens_changed(self, index):
         if self._current_ip and not self._updating:

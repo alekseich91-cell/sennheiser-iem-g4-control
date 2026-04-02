@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
         self._status.showMessage("Scanning network...")
         self._table.clear_all()
         self._detail.setVisible(False)
-        self._manager.devices.clear()
+        self._manager.clear_devices()
         self._manager.start_scan()
 
     def _on_refresh(self):

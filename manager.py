@@ -35,13 +35,13 @@ class DeviceManager(QObject):
 
         self._health_timer = QTimer(self)
         self._health_timer.timeout.connect(self._check_all_health)
-        self._health_timer.start(2000)
 
         self._scanning = False
 
     # --- Scanning ---
 
     def start_scan(self):
+        self._push_timer.stop()
         self._scanning = True
         local_ip, netmask = self._get_local_network()
         if not local_ip:
@@ -50,7 +50,7 @@ class DeviceManager(QObject):
             return
 
         network = ipaddress.IPv4Network(f"{local_ip}/{netmask}", strict=False)
-        cmd = build_command("Push", 1, 1000, 3).encode("ascii")
+        cmd = build_command("Push", 5, 1000, 3).encode("ascii")
         for host in network.hosts():
             host_str = str(host)
             if host_str == local_ip:
@@ -67,7 +67,13 @@ class DeviceManager(QObject):
         self._scanning = False
         self._renew_subscriptions()
         self._push_timer.start(PUSH_INTERVAL_MS)
+        self._health_timer.start(2000)
         self.scan_finished.emit()
+
+    def clear_devices(self):
+        self._push_timer.stop()
+        self._health_timer.stop()
+        self.devices.clear()
 
     @staticmethod
     def _get_local_network() -> tuple[str | None, str | None]:
@@ -118,8 +124,11 @@ class DeviceManager(QObject):
         if not dev:
             return
 
+        was_offline = not dev.online
         dev.online = True
         dev._missed_pushes = 0
+        if was_offline:
+            self.device_came_online.emit(ip)
 
         t = update["type"]
         if t == "Name":

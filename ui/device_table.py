@@ -56,11 +56,13 @@ class DeviceTable(QTableWidget):
         if row is None:
             return
 
-        self.item(row, 1).setText(device.name)
-        self.item(row, 3).setText(device.frequency_mhz)
-        self.item(row, 4).setText(str(device.sensitivity))
-        self.item(row, 5).setText("On" if device.mute else "Off")
-        self.item(row, 6).setText(device.mode.capitalize())
+        for col, text in [(1, device.name), (3, device.frequency_mhz),
+                          (4, str(device.sensitivity)),
+                          (5, "On" if device.mute else "Off"),
+                          (6, device.mode.capitalize())]:
+            item = self.item(row, col)
+            if item:
+                item.setText(text)
 
         for col in range(1, len(COLUMNS)):
             item = self.item(row, col)
