@@ -1,2 +1,3 @@
 PyQt6>=6.6
 pytest>=8.0
+netifaces-plus>=0.12
