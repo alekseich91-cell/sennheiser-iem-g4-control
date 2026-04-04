@@ -1,0 +1,57 @@
+name: Build Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: Sennheiser IEM Control.exe
+            build_cmd: >-
+              pyinstaller --onefile --noconsole
+              --name "Sennheiser IEM Control"
+              --hidden-import netifaces
+              --add-data "device.py;."
+              --add-data "protocol.py;."
+              --add-data "manager.py;."
+              main.py
+            dist_path: dist/Sennheiser IEM Control.exe
+
+          - os: macos-latest
+            artifact: Sennheiser IEM Control.app.zip
+            build_cmd: >-
+              pyinstaller "Sennheiser IEM Control.spec"
+            dist_path: Sennheiser IEM Control.app.zip
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller
+          pip install PyQt6 netifaces-plus
+
+      - name: Build
+        run: ${{ matrix.build_cmd }}
+
+      - name: Zip macOS app
+        if: runner.os == 'macOS'
+        run: cd dist && zip -r "../Sennheiser IEM Control.app.zip" "Sennheiser IEM Control.app"
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.dist_path }}
