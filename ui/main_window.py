@@ -50,6 +50,7 @@ class MainWindow(QMainWindow):
 
         # Unified control panel
         self._panel = ControlPanel()
+        self._panel.set_devices(self._manager.devices)
         layout.addWidget(self._panel, stretch=2)
 
         # Help menu
@@ -134,11 +135,10 @@ class MainWindow(QMainWindow):
         device = self._manager.devices.get(ip)
         if device:
             self._table.update_device(device)
-            self._panel.set_devices(self._manager.devices)
+            self._panel.refresh_if_selected(ip)
             self._panel.update_levels(ip)
 
     def _on_selection_changed(self, ips: list[str]):
-        self._panel.set_devices(self._manager.devices)
         self._panel.set_selection(ips)
 
     def _on_apply_pending(self, ips: list[str], pending: dict):

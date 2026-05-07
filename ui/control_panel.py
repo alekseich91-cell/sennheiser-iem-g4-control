@@ -210,6 +210,11 @@ class ControlPanel(QWidget):
         self._devices_by_ip = devices_by_ip
         self._refresh_view()
 
+    def refresh_if_selected(self, ip: str):
+        """Re-populate panel inputs only if the changed device is selected."""
+        if ip in self._selected_ips:
+            self._refresh_view()
+
     def set_selection(self, ips: list[str]):
         self._selected_ips = list(ips)
         self._pending.clear()
@@ -295,6 +300,8 @@ class ControlPanel(QWidget):
         unique = set(values)
         if len(unique) == 1:
             ControlPanel._set_combo_data(combo, unique.pop())
+        else:
+            combo.setCurrentIndex(-1)
 
     @staticmethod
     def _populate_common_check(check: QCheckBox, values: list[bool]):

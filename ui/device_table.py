@@ -94,19 +94,19 @@ class DeviceTable(QTableWidget):
         self.selection_changed.emit(self.get_checked_ips())
 
     def select_all(self):
-        for ip in self._ip_to_row:
-            row = self._ip_to_row[ip]
-            container = self.cellWidget(row, 0)
-            if container:
-                cb = container.findChild(QCheckBox)
-                if cb:
-                    cb.setChecked(True)
+        self._set_all_checked(True)
 
     def clear_selection(self):
+        self._set_all_checked(False)
+
+    def _set_all_checked(self, checked: bool):
         for ip in self._ip_to_row:
             row = self._ip_to_row[ip]
             container = self.cellWidget(row, 0)
             if container:
                 cb = container.findChild(QCheckBox)
                 if cb:
-                    cb.setChecked(False)
+                    cb.blockSignals(True)
+                    cb.setChecked(checked)
+                    cb.blockSignals(False)
+        self._emit_checked_ips()
