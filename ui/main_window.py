@@ -135,6 +135,8 @@ class MainWindow(QMainWindow):
         device = self._manager.devices.get(ip)
         if device:
             self._table.update_device(device)
+            if device.audio_level_l > 200 or device.audio_level_r > 200:
+                self._table.flash_af_peak(ip)
             self._panel.refresh_if_selected(ip)
             self._panel.update_levels(ip)
 
