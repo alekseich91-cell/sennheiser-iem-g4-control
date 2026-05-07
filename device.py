@@ -15,6 +15,8 @@ class IEMDevice:
     audio_hold_l: int = 0
     audio_hold_r: int = 0
     online: bool = False
+    rf_power: str = "Std"           # "Lo" | "Std" | "Hi"
+    panel_locked: bool = False
     _missed_pushes: int = field(default=0, repr=False)
 
     @property
