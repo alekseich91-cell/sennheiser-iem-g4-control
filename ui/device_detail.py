@@ -22,6 +22,7 @@ class DeviceDetailPanel(QWidget):
         super().__init__(parent)
         self._current_ip: str | None = None
         self._updating = False  # Guard against signal loops
+        self._eq_user_dragging = False
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(5, 5, 5, 5)
@@ -104,6 +105,10 @@ class DeviceDetailPanel(QWidget):
             slider.setValue(0)
             slider.setTickInterval(1)
             slider.setTickPosition(QSlider.TickPosition.TicksBothSides)
+            slider.setMinimumHeight(120)
+            slider.setFixedWidth(40)
+            slider.sliderPressed.connect(self._on_eq_drag_start)
+            slider.sliderReleased.connect(self._on_eq_drag_end)
             slider.valueChanged.connect(self._on_eq_changed)
             name_label = QLabel(band_name)
             name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -150,9 +155,10 @@ class DeviceDetailPanel(QWidget):
         self._sens_slider.setValue(sens_idx)
         self._sens_label.setText(f"{device.sensitivity} dB")
 
-        for i, val in enumerate(device.eq):
-            self._eq_sliders[i].setValue(val)
-            self._eq_labels[i].setText(str(val))
+        if not self._eq_user_dragging:
+            for i, val in enumerate(device.eq):
+                self._eq_sliders[i].setValue(val)
+                self._eq_labels[i].setText(str(val))
 
         self._level_l.setValue(device.audio_level_l)
         self._level_r.setValue(device.audio_level_r)
@@ -212,3 +218,9 @@ class DeviceDetailPanel(QWidget):
                 self._eq_labels[i].setText(str(val))
             enabled = any(b != 0 for b in bands)
             self.eq_changed.emit(self._current_ip, enabled, bands)
+
+    def _on_eq_drag_start(self):
+        self._eq_user_dragging = True
+
+    def _on_eq_drag_end(self):
+        self._eq_user_dragging = False
