@@ -10,6 +10,7 @@ COLUMNS = ["", "Name", "IP", "Frequency", "Sensitivity", "Mute", "Mode"]
 class DeviceTable(QTableWidget):
     device_selected = pyqtSignal(str)       # ip of clicked device
     selection_changed = pyqtSignal(list)     # list of checked IPs
+    device_identify_requested = pyqtSignal(str)   # ip — wired in Task 7
 
     def __init__(self, parent=None):
         super().__init__(0, len(COLUMNS), parent)
@@ -91,3 +92,21 @@ class DeviceTable(QTableWidget):
 
     def _emit_checked_ips(self):
         self.selection_changed.emit(self.get_checked_ips())
+
+    def select_all(self):
+        for ip in self._ip_to_row:
+            row = self._ip_to_row[ip]
+            container = self.cellWidget(row, 0)
+            if container:
+                cb = container.findChild(QCheckBox)
+                if cb:
+                    cb.setChecked(True)
+
+    def clear_selection(self):
+        for ip in self._ip_to_row:
+            row = self._ip_to_row[ip]
+            container = self.cellWidget(row, 0)
+            if container:
+                cb = container.findChild(QCheckBox)
+                if cb:
+                    cb.setChecked(False)
