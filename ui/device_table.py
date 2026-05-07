@@ -44,6 +44,7 @@ class DeviceTable(QTableWidget):
 
         self._ip_to_row: dict[str, int] = {}
         self._af_peak_timers: dict[str, QTimer] = {}
+        self._device_snapshots: dict[str, IEMDevice] = {}
 
     # --- Public ---
 
@@ -56,6 +57,7 @@ class DeviceTable(QTableWidget):
         row = self.rowCount()
         self.insertRow(row)
         self._ip_to_row[device.ip] = row
+        self._device_snapshots[device.ip] = device
 
         cb = QCheckBox()
         cb.stateChanged.connect(lambda _: self._emit_checked_ips())
@@ -93,6 +95,7 @@ class DeviceTable(QTableWidget):
         row = self._row_for_ip(device.ip)
         if row is None:
             return
+        self._device_snapshots[device.ip] = device
 
         was_sorting = self.isSortingEnabled()
         self.setSortingEnabled(False)
@@ -129,8 +132,10 @@ class DeviceTable(QTableWidget):
     def clear_all(self):
         self.setRowCount(0)
         self._ip_to_row.clear()
+        self._device_snapshots.clear()
         for t in self._af_peak_timers.values():
             t.stop()
+            t.deleteLater()
         self._af_peak_timers.clear()
 
     def select_all(self):
@@ -195,13 +200,12 @@ class DeviceTable(QTableWidget):
                 item.setForeground(QBrush())
 
     def _clear_af_peak(self, ip: str):
-        row = self._row_for_ip(ip)
-        if row is None:
+        # Restore correct row colors based on cached device state instead
+        # of blindly resetting to default — preserves mute-gray bg.
+        device = self._device_snapshots.get(ip)
+        if device is None:
             return
-        for col in range(1, len(COLUMNS) - 1):
-            item = self.item(row, col)
-            if item:
-                item.setBackground(QBrush())
+        self._apply_row_colors(device)
 
     def _on_sort_changed(self, col: int, order: Qt.SortOrder):
         settings = QSettings("SennheiserIEMControl", "DeviceTable")
