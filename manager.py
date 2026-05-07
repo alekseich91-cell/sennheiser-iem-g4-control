@@ -167,9 +167,15 @@ class DeviceManager(QObject):
             dev.audio_level_r = update["peak_r"]
             dev.audio_hold_l = update["hold_l"]
             dev.audio_hold_r = update["hold_r"]
+        elif t == "RF":
+            dev.rf_power = update["value"]
+        elif t == "LockMode":
+            dev.panel_locked = update["value"]
+        elif t == "Identify":
+            pass  # no state to apply
 
     def _query_all_params(self, ip: str):
-        for cmd_name in ["Frequency", "Name", "Sensitivity", "Equalizer", "Mode"]:
+        for cmd_name in ["Frequency", "Name", "Sensitivity", "Equalizer", "Mode", "RF", "LockMode"]:
             self._send_to(ip, build_command(cmd_name))
 
     # --- Subscriptions ---
@@ -219,6 +225,15 @@ class DeviceManager(QObject):
         en = "#1" if enabled else "#0"
         self._send_to(ip, build_command("Equalizer", en, *bands))
 
+    def set_rf_power(self, ip: str, level: str):
+        self._send_to(ip, build_command("RF", level))
+
+    def set_panel_lock(self, ip: str, locked: bool):
+        self._send_to(ip, build_command("LockMode", 1 if locked else 0))
+
+    def identify(self, ip: str):
+        self._send_to(ip, build_command("Identify", 1))
+
     # --- Mass operations ---
 
     def mass_set_sensitivity(self, ips: list[str], value: int):
@@ -228,6 +243,47 @@ class DeviceManager(QObject):
     def mass_set_mute(self, ips: list[str], mute: bool):
         for ip in ips:
             self.set_mute(ip, mute)
+
+    def mass_set_mode(self, ips: list[str], mode: str):
+        for ip in ips:
+            self.set_mode(ip, mode)
+
+    def mass_set_eq(self, ips: list[str], enabled: bool, bands: list[int]):
+        for ip in ips:
+            self.set_equalizer(ip, enabled, bands)
+
+    def mass_set_rf_power(self, ips: list[str], level: str):
+        for ip in ips:
+            self.set_rf_power(ip, level)
+
+    def mass_set_panel_lock(self, ips: list[str], locked: bool):
+        for ip in ips:
+            self.set_panel_lock(ip, locked)
+
+    def mass_identify(self, ips: list[str]):
+        for ip in ips:
+            self.identify(ip)
+
+    def mass_reset(self, ips: list[str]):
+        for ip in ips:
+            self.set_sensitivity(ip, -18)
+            self.set_mode(ip, "stereo")
+            self.set_equalizer(ip, False, [0, 0, 0, 0, 0])
+            self.set_rf_power(ip, "Std")
+            self.set_panel_lock(ip, False)
+            self.set_mute(ip, False)
+
+    def mute_all(self):
+        for ip in self.devices:
+            self.set_mute(ip, True)
+
+    def unmute_all(self):
+        for ip in self.devices:
+            self.set_mute(ip, False)
+
+    def identify_all(self):
+        for ip in self.devices:
+            self.identify(ip)
 
     # --- Internal ---
 

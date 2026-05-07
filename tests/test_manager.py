@@ -102,3 +102,114 @@ def test_online_restored_on_data(manager):
     manager._apply_update("192.168.1.10", {"type": "AF", "peak_l": 50, "peak_r": 40, "hold_l": 20, "hold_r": 10})
     assert dev.online is True
     assert dev._missed_pushes == 0
+
+
+def test_apply_update_rf(manager):
+    manager._add_device("192.168.1.10")
+    manager._apply_update("192.168.1.10", {"type": "RF", "value": "Hi"})
+    assert manager.devices["192.168.1.10"].rf_power == "Hi"
+
+
+def test_apply_update_lockmode(manager):
+    manager._add_device("192.168.1.10")
+    manager._apply_update("192.168.1.10", {"type": "LockMode", "value": True})
+    assert manager.devices["192.168.1.10"].panel_locked is True
+
+
+def test_apply_update_identify_is_noop(manager):
+    manager._add_device("192.168.1.10")
+    manager._apply_update("192.168.1.10", {"type": "Identify"})
+    # Just checks it doesn't crash; Identify carries no state.
+
+
+def test_set_rf_power(manager):
+    manager._add_device("192.168.1.10")
+    manager.set_rf_power("192.168.1.10", "Hi")
+    assert manager._socket.writeDatagram.call_count == 1
+    sent_bytes = bytes(manager._socket.writeDatagram.call_args.args[0])
+    assert sent_bytes == b"RF Hi\r"
+
+
+def test_set_panel_lock_true(manager):
+    manager._add_device("192.168.1.10")
+    manager.set_panel_lock("192.168.1.10", True)
+    sent_bytes = bytes(manager._socket.writeDatagram.call_args.args[0])
+    assert sent_bytes == b"LockMode 1\r"
+
+
+def test_set_panel_lock_false(manager):
+    manager._add_device("192.168.1.10")
+    manager.set_panel_lock("192.168.1.10", False)
+    sent_bytes = bytes(manager._socket.writeDatagram.call_args.args[0])
+    assert sent_bytes == b"LockMode 0\r"
+
+
+def test_identify(manager):
+    manager._add_device("192.168.1.10")
+    manager.identify("192.168.1.10")
+    sent_bytes = bytes(manager._socket.writeDatagram.call_args.args[0])
+    assert sent_bytes == b"Identify 1\r"
+
+
+def test_mass_set_mode(manager):
+    manager._add_device("192.168.1.10")
+    manager._add_device("192.168.1.11")
+    manager.mass_set_mode(["192.168.1.10", "192.168.1.11"], "mono")
+    assert manager._socket.writeDatagram.call_count == 2
+
+
+def test_mass_set_eq(manager):
+    manager._add_device("192.168.1.10")
+    manager._add_device("192.168.1.11")
+    manager.mass_set_eq(["192.168.1.10", "192.168.1.11"], True, [1, 2, 3, 4, 5])
+    assert manager._socket.writeDatagram.call_count == 2
+
+
+def test_mass_set_rf_power(manager):
+    manager._add_device("192.168.1.10")
+    manager._add_device("192.168.1.11")
+    manager.mass_set_rf_power(["192.168.1.10", "192.168.1.11"], "Lo")
+    assert manager._socket.writeDatagram.call_count == 2
+
+
+def test_mass_set_panel_lock(manager):
+    manager._add_device("192.168.1.10")
+    manager._add_device("192.168.1.11")
+    manager.mass_set_panel_lock(["192.168.1.10", "192.168.1.11"], True)
+    assert manager._socket.writeDatagram.call_count == 2
+
+
+def test_mass_identify(manager):
+    manager._add_device("192.168.1.10")
+    manager._add_device("192.168.1.11")
+    manager.mass_identify(["192.168.1.10", "192.168.1.11"])
+    assert manager._socket.writeDatagram.call_count == 2
+
+
+def test_mass_reset_sends_six_commands_per_device(manager):
+    manager._add_device("192.168.1.10")
+    manager.mass_reset(["192.168.1.10"])
+    # Sensitivity, Mode, Equalizer, RF, LockMode, Mute = 6 commands
+    assert manager._socket.writeDatagram.call_count == 6
+
+
+def test_mute_all_sends_to_every_known_device(manager):
+    manager._add_device("192.168.1.10")
+    manager._add_device("192.168.1.11")
+    manager._add_device("192.168.1.12")
+    manager.mute_all()
+    assert manager._socket.writeDatagram.call_count == 3
+
+
+def test_unmute_all(manager):
+    manager._add_device("192.168.1.10")
+    manager._add_device("192.168.1.11")
+    manager.unmute_all()
+    assert manager._socket.writeDatagram.call_count == 2
+
+
+def test_identify_all(manager):
+    manager._add_device("192.168.1.10")
+    manager._add_device("192.168.1.11")
+    manager.identify_all()
+    assert manager._socket.writeDatagram.call_count == 2
