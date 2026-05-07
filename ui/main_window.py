@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QStatusBar,
+    QPushButton, QStatusBar, QComboBox, QLabel,
 )
 
 from manager import DeviceManager
@@ -23,6 +23,13 @@ class MainWindow(QMainWindow):
 
         # Toolbar
         toolbar = QHBoxLayout()
+
+        toolbar.addWidget(QLabel("Interface:"))
+        self._iface_combo = QComboBox()
+        self._iface_combo.setMinimumWidth(200)
+        self._populate_interfaces()
+        toolbar.addWidget(self._iface_combo)
+
         self._scan_btn = QPushButton("Scan Network")
         self._scan_btn.clicked.connect(self._on_scan)
         toolbar.addWidget(self._scan_btn)
@@ -78,13 +85,22 @@ class MainWindow(QMainWindow):
         self._detail.mute_changed.connect(self._manager.set_mute)
         self._detail.eq_changed.connect(self._manager.set_equalizer)
 
+    def _populate_interfaces(self):
+        self._iface_combo.clear()
+        ifaces = DeviceManager.get_interfaces()
+        for iface in ifaces:
+            label = f"{iface['name']} — {iface['ip']}/{iface['mask']}"
+            self._iface_combo.addItem(label, iface)
+
     def _on_scan(self):
         self._scan_btn.setEnabled(False)
-        self._status.showMessage("Scanning network...")
+        iface = self._iface_combo.currentData()
+        subnet = f"{iface['ip']}/{iface['mask']}" if iface else "unknown"
+        self._status.showMessage(f"Scanning {subnet}...")
         self._table.clear_all()
         self._detail.setVisible(False)
         self._manager.clear_devices()
-        self._manager.start_scan()
+        self._manager.start_scan(iface)
 
     def _on_refresh(self):
         for ip in self._manager.devices:

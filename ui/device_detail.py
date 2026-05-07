@@ -38,6 +38,10 @@ class DeviceDetailPanel(QWidget):
         self._name_edit.setMaximumWidth(120)
         self._name_edit.returnPressed.connect(self._on_name_changed)
         top.addWidget(self._name_edit)
+        self._name_apply = QPushButton("Set")
+        self._name_apply.setMaximumWidth(40)
+        self._name_apply.clicked.connect(self._on_name_changed)
+        top.addWidget(self._name_apply)
 
         top.addSpacing(10)
         top.addWidget(QLabel("Freq (MHz):"))
@@ -45,14 +49,21 @@ class DeviceDetailPanel(QWidget):
         self._freq_edit.setMaximumWidth(100)
         self._freq_edit.returnPressed.connect(self._on_freq_changed)
         top.addWidget(self._freq_edit)
+        self._freq_apply = QPushButton("Set")
+        self._freq_apply.setMaximumWidth(40)
+        self._freq_apply.clicked.connect(self._on_freq_changed)
+        top.addWidget(self._freq_apply)
 
         top.addSpacing(10)
         top.addWidget(QLabel("Mode:"))
         self._mode_combo = QComboBox()
         self._mode_combo.addItem("Stereo", "stereo")
         self._mode_combo.addItem("Mono", "mono")
-        self._mode_combo.currentIndexChanged.connect(self._on_mode_changed)
         top.addWidget(self._mode_combo)
+        self._mode_apply = QPushButton("Set")
+        self._mode_apply.setMaximumWidth(40)
+        self._mode_apply.clicked.connect(self._on_mode_changed)
+        top.addWidget(self._mode_apply)
 
         top.addSpacing(10)
         self._mute_btn = QPushButton("Mute: Off")
@@ -170,6 +181,7 @@ class DeviceDetailPanel(QWidget):
             try:
                 freq = int(text)
                 if 470000 <= freq <= 865000:
+                    self._freq_edit.setStyleSheet("")
                     self.frequency_changed.emit(self._current_ip, freq)
                 else:
                     self._freq_edit.setStyleSheet("background-color: #ffcccc;")
@@ -182,7 +194,7 @@ class DeviceDetailPanel(QWidget):
             self._sens_label.setText(f"{value} dB")
             self.sensitivity_changed.emit(self._current_ip, value)
 
-    def _on_mode_changed(self, _index):
+    def _on_mode_changed(self):
         if self._current_ip and not self._updating:
             mode = self._mode_combo.currentData()
             self.mode_changed.emit(self._current_ip, mode)

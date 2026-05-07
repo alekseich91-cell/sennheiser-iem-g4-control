@@ -67,10 +67,8 @@ class DeviceTable(QTableWidget):
         for col in range(1, len(COLUMNS)):
             item = self.item(row, col)
             if item:
-                if device.online:
-                    item.setForeground(Qt.GlobalColor.black)
-                else:
-                    item.setForeground(Qt.GlobalColor.gray)
+                if not device.online:
+                    item.setForeground(Qt.GlobalColor.darkGray)
 
     def get_checked_ips(self) -> list[str]:
         ips = []

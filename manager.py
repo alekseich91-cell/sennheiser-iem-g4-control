@@ -27,7 +27,12 @@ class DeviceManager(QObject):
         self.devices: dict[str, IEMDevice] = {}
 
         self._socket = QUdpSocket(self)
-        self._socket.bind(QHostAddress.SpecialAddress.AnyIPv4, PORT)
+        bound = self._socket.bind(QHostAddress.SpecialAddress.AnyIPv4, PORT)
+        self._bind_ok = bound
+        if not bound:
+            print(f"WARNING: Could not bind to UDP port {PORT}: {self._socket.errorString()}")
+        else:
+            print(f"Bound to UDP port {PORT}")
         self._socket.readyRead.connect(self._on_data_ready)
 
         self._push_timer = QTimer(self)
@@ -40,17 +45,44 @@ class DeviceManager(QObject):
 
     # --- Scanning ---
 
-    def start_scan(self):
+    def clear_devices(self):
+        self._push_timer.stop()
+        self._health_timer.stop()
+        self.devices.clear()
+
+    @staticmethod
+    def get_interfaces() -> list[dict]:
+        """Return list of available network interfaces with IP info."""
+        import netifaces
+        result = []
+        for iface in netifaces.interfaces():
+            addrs = netifaces.ifaddresses(iface)
+            if netifaces.AF_INET in addrs:
+                for addr in addrs[netifaces.AF_INET]:
+                    ip = addr.get("addr", "")
+                    mask = addr.get("netmask", "255.255.255.0")
+                    if ip and not ip.startswith("127."):
+                        result.append({"name": iface, "ip": ip, "mask": mask})
+        return result
+
+    def start_scan(self, interface: dict | None = None):
         self._push_timer.stop()
         self._scanning = True
-        local_ip, netmask = self._get_local_network()
-        if not local_ip:
-            self._scanning = False
-            self.scan_finished.emit()
-            return
 
+        if interface:
+            local_ip, netmask = interface["ip"], interface["mask"]
+        else:
+            ifaces = self.get_interfaces()
+            if not ifaces:
+                self._scanning = False
+                self.scan_finished.emit()
+                return
+            local_ip, netmask = ifaces[0]["ip"], ifaces[0]["mask"]
+
+        print(f"Scanning {local_ip}/{netmask}, socket bound: {self._bind_ok}, local port: {self._socket.localPort()}")
         network = ipaddress.IPv4Network(f"{local_ip}/{netmask}", strict=False)
         cmd = build_command("Push", 5, 1000, 3).encode("ascii")
+        sent = 0
         for host in network.hosts():
             host_str = str(host)
             if host_str == local_ip:
@@ -60,7 +92,9 @@ class DeviceManager(QObject):
                 QHostAddress(host_str),
                 PORT,
             )
+            sent += 1
 
+        print(f"Sent Push to {sent} hosts, waiting {SCAN_TIMEOUT_MS}ms...")
         QTimer.singleShot(SCAN_TIMEOUT_MS, self._finish_scan)
 
     def _finish_scan(self):
@@ -70,25 +104,6 @@ class DeviceManager(QObject):
         self._health_timer.start(2000)
         self.scan_finished.emit()
 
-    def clear_devices(self):
-        self._push_timer.stop()
-        self._health_timer.stop()
-        self.devices.clear()
-
-    @staticmethod
-    def _get_local_network() -> tuple[str | None, str | None]:
-        """Get local IP and netmask (cross-platform)."""
-        import netifaces
-        for iface in netifaces.interfaces():
-            addrs = netifaces.ifaddresses(iface)
-            if netifaces.AF_INET in addrs:
-                for addr in addrs[netifaces.AF_INET]:
-                    ip = addr.get("addr", "")
-                    mask = addr.get("netmask", "255.255.255.0")
-                    if ip and not ip.startswith("127."):
-                        return ip, mask
-        return None, None
-
     # --- Data handling ---
 
     def _on_data_ready(self):
@@ -97,7 +112,11 @@ class DeviceManager(QObject):
                 self._socket.pendingDatagramSize()
             )
             ip = host.toString()
+            # Strip IPv6 prefix if present (e.g. "::ffff:192.168.1.143")
+            if ip.startswith("::ffff:"):
+                ip = ip[7:]
             message = bytes(data).decode("ascii", errors="ignore")
+            print(f"UDP recv from {ip}:{port}: {message[:80]}")
 
             if ip not in self.devices:
                 self._add_device(ip)
