@@ -276,6 +276,7 @@ class ControlPanel(QWidget):
             self._populate_common_combo(self._rf_combo, [d.rf_power for d in devs])
             self._populate_common_check(self._lock_check, [d.panel_locked for d in devs])
             self._populate_common_check(self._mute_check, [d.mute for d in devs])
+            self._populate_common_check(self._eq_enabled, [any(b != 0 for b in d.eq) for d in devs])
             for i in range(5):
                 vals = {d.eq[i] for d in devs}
                 if len(vals) == 1:

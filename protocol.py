@@ -44,7 +44,8 @@ def parse_response(data: str) -> list[dict]:
         elif keyword == "RF":
             results.append({"type": "RF", "value": parts[1] if len(parts) > 1 else ""})
         elif keyword == "LockMode":
-            results.append({"type": "LockMode", "value": parts[1] == "1"})
+            if len(parts) > 1:
+                results.append({"type": "LockMode", "value": parts[1] == "1"})
         elif keyword == "Identify":
             results.append({"type": "Identify"})
         else:

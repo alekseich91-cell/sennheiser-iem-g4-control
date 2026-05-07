@@ -121,3 +121,8 @@ class TestParseResponse:
     def test_parse_identify(self):
         result = parse_response("Identify 1\r")
         assert result == [{"type": "Identify"}]
+
+    def test_parse_lockmode_no_value_does_not_crash(self):
+        result = parse_response("LockMode\r")
+        # Should not raise IndexError; should return empty (skipped) or unknown
+        assert isinstance(result, list)
