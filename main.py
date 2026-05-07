@@ -1,5 +1,9 @@
 import sys
 from PyQt6.QtWidgets import QApplication
+
+from app_log import setup_logging
+setup_logging()
+
 from ui.main_window import MainWindow
 
 

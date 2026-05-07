@@ -1,4 +1,5 @@
 import ipaddress
+import logging
 import socket
 
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QByteArray
@@ -7,6 +8,7 @@ from PyQt6.QtNetwork import QUdpSocket, QHostAddress
 from device import IEMDevice
 from protocol import build_command, parse_response
 
+log = logging.getLogger(__name__)
 
 PORT = 53212
 PUSH_INTERVAL_MS = 55000       # Re-subscribe every 55s (subscription lasts 60s)
@@ -30,9 +32,9 @@ class DeviceManager(QObject):
         bound = self._socket.bind(QHostAddress.SpecialAddress.AnyIPv4, PORT)
         self._bind_ok = bound
         if not bound:
-            print(f"WARNING: Could not bind to UDP port {PORT}: {self._socket.errorString()}")
+            log.warning("Could not bind to UDP port %d: %s", PORT, self._socket.errorString())
         else:
-            print(f"Bound to UDP port {PORT}")
+            log.info("Bound to UDP port %d", PORT)
         self._socket.readyRead.connect(self._on_data_ready)
 
         self._push_timer = QTimer(self)
@@ -79,7 +81,7 @@ class DeviceManager(QObject):
                 return
             local_ip, netmask = ifaces[0]["ip"], ifaces[0]["mask"]
 
-        print(f"Scanning {local_ip}/{netmask}, socket bound: {self._bind_ok}, local port: {self._socket.localPort()}")
+        log.info("Scanning %s/%s, socket bound: %s, local port: %s", local_ip, netmask, self._bind_ok, self._socket.localPort())
         network = ipaddress.IPv4Network(f"{local_ip}/{netmask}", strict=False)
         cmd = build_command("Push", 5, 1000, 3).encode("ascii")
         sent = 0
@@ -94,7 +96,7 @@ class DeviceManager(QObject):
             )
             sent += 1
 
-        print(f"Sent Push to {sent} hosts, waiting {SCAN_TIMEOUT_MS}ms...")
+        log.info("Sent Push to %d hosts, waiting %dms...", sent, SCAN_TIMEOUT_MS)
         QTimer.singleShot(SCAN_TIMEOUT_MS, self._finish_scan)
 
     def _finish_scan(self):
@@ -116,7 +118,7 @@ class DeviceManager(QObject):
             if ip.startswith("::ffff:"):
                 ip = ip[7:]
             message = bytes(data).decode("ascii", errors="ignore")
-            print(f"UDP recv from {ip}:{port}: {message[:80]}")
+            log.debug("UDP recv from %s:%d: %s", ip, port, message[:80])
 
             if ip not in self.devices:
                 self._add_device(ip)
