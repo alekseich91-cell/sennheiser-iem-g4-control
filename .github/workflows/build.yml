@@ -3,6 +3,7 @@ name: Build Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -10,6 +11,7 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -18,16 +20,16 @@ jobs:
               pyinstaller --onefile --noconsole
               --name "Sennheiser IEM Control"
               --hidden-import netifaces
-              --add-data "device.py;."
-              --add-data "protocol.py;."
-              --add-data "manager.py;."
               main.py
             dist_path: dist/Sennheiser IEM Control.exe
 
           - os: macos-latest
             artifact: Sennheiser IEM Control.app.zip
             build_cmd: >-
-              pyinstaller "Sennheiser IEM Control.spec"
+              pyinstaller --windowed
+              --name "Sennheiser IEM Control"
+              --hidden-import netifaces
+              main.py
             dist_path: Sennheiser IEM Control.app.zip
 
     runs-on: ${{ matrix.os }}
@@ -52,6 +54,14 @@ jobs:
         run: cd dist && zip -r "../Sennheiser IEM Control.app.zip" "Sennheiser IEM Control.app"
 
       - name: Upload to release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.dist_path }}
+
+      - name: Upload artifact (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.dist_path }}
