@@ -97,3 +97,27 @@ class TestParseResponse:
     def test_parse_unknown_line(self):
         result = parse_response("SomethingNew 123\r")
         assert result == [{"type": "Unknown", "raw": "SomethingNew 123"}]
+
+    def test_parse_rf_lo(self):
+        result = parse_response("RF Lo\r")
+        assert result == [{"type": "RF", "value": "Lo"}]
+
+    def test_parse_rf_std(self):
+        result = parse_response("RF Std\r")
+        assert result == [{"type": "RF", "value": "Std"}]
+
+    def test_parse_rf_hi(self):
+        result = parse_response("RF Hi\r")
+        assert result == [{"type": "RF", "value": "Hi"}]
+
+    def test_parse_lockmode_locked(self):
+        result = parse_response("LockMode 1\r")
+        assert result == [{"type": "LockMode", "value": True}]
+
+    def test_parse_lockmode_unlocked(self):
+        result = parse_response("LockMode 0\r")
+        assert result == [{"type": "LockMode", "value": False}]
+
+    def test_parse_identify(self):
+        result = parse_response("Identify 1\r")
+        assert result == [{"type": "Identify"}]

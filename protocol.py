@@ -41,6 +41,12 @@ def parse_response(data: str) -> list[dict]:
         elif keyword == "Msg":
             text = " ".join(parts[1:])
             results.append({"type": "Msg", "text": text, "af_peak": "AF_Peak" in text})
+        elif keyword == "RF":
+            results.append({"type": "RF", "value": parts[1] if len(parts) > 1 else ""})
+        elif keyword == "LockMode":
+            results.append({"type": "LockMode", "value": parts[1] == "1"})
+        elif keyword == "Identify":
+            results.append({"type": "Identify"})
         else:
             results.append({"type": "Unknown", "raw": line})
 
