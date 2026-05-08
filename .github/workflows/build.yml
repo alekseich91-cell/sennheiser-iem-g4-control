@@ -20,6 +20,7 @@ jobs:
               pyinstaller --onefile --noconsole
               --name "Sennheiser IEM Control"
               --hidden-import netifaces
+              --collect-all PyQt6
               main.py
             dist_path: dist/Sennheiser IEM Control.exe
 
@@ -29,6 +30,7 @@ jobs:
               pyinstaller --windowed
               --name "Sennheiser IEM Control"
               --hidden-import netifaces
+              --collect-all PyQt6
               main.py
             dist_path: Sennheiser IEM Control.app.zip
 
@@ -49,9 +51,12 @@ jobs:
       - name: Build
         run: ${{ matrix.build_cmd }}
 
-      - name: Zip macOS app
+      - name: Sign and zip macOS app (preserves framework symlinks)
         if: runner.os == 'macOS'
-        run: cd dist && zip -r "../Sennheiser IEM Control.app.zip" "Sennheiser IEM Control.app"
+        run: |
+          cd dist
+          codesign --force --deep --sign - "Sennheiser IEM Control.app"
+          ditto -c -k --keepParent "Sennheiser IEM Control.app" "../Sennheiser IEM Control.app.zip"
 
       - name: Upload to release
         if: github.event_name == 'release'
